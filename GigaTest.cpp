@@ -136,7 +136,6 @@ bool alienRedirect(CURL* handle)
 }
 
 void closeSockets(uv_timer_t* handle) {
-  // std::cout << "Closing sockets\n";
   auto AD = (AsynchronousDownloader*)handle->data;
   curl_multi_cleanup(AD->curlMultiHandle);
   AD->multiHandleActive = false;
@@ -145,7 +144,6 @@ void closeSockets(uv_timer_t* handle) {
 
 void onTimeout(uv_timer_t *req)
 {
-  // std::cout << "onTimeout\n";
   auto AD = (AsynchronousDownloader *)req->data;
   int running_handles;
   curl_multi_socket_action(AD->curlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
@@ -158,8 +156,6 @@ void onTimeout(uv_timer_t *req)
 // If call is finished closes handle indirectly by check multi info
 void curl_perform(uv_poll_t *req, int status, int events)
 {
-  // std::cout << "curl_perform\n";
-
   int running_handles;
   int flags = 0;
   if (events & UV_READABLE)
@@ -177,7 +173,6 @@ void curl_perform(uv_poll_t *req, int status, int events)
 // Initializes a handle using a socket and passes it to context
 AsynchronousDownloader::curl_context_t *AsynchronousDownloader::createCurlContext(curl_socket_t sockfd, AsynchronousDownloader *objPtr)
 {
-  // std::cout << "createCurlContext\n";
   curl_context_t *context;
 
   context = (curl_context_t *)malloc(sizeof(*context));
@@ -193,7 +188,6 @@ AsynchronousDownloader::curl_context_t *AsynchronousDownloader::createCurlContex
 // Frees data from curl handle inside uv_handle*
 void AsynchronousDownloader::curlCloseCB(uv_handle_t *handle)
 {
-  // std::cout << "curlCloseCB\n";
   curl_context_t *context = (curl_context_t *)handle->data;
   free(context);
 }
@@ -201,13 +195,11 @@ void AsynchronousDownloader::curlCloseCB(uv_handle_t *handle)
 // Makes an asynchronious call to free curl context*
 void AsynchronousDownloader::destroyCurlContext(curl_context_t *context)
 {
-  // std::cout << "destroyCurlContext\n";
   uv_close((uv_handle_t *)&context->poll_handle, curlCloseCB);
 }
 
 void callbackWrappingFunction(void (*cbFun)(void*), void* data, bool* completionFlag)
 {
-  // std::cout << "callbackWrappingFunction\n";
   cbFun(data);
   *completionFlag = true;
 }
@@ -215,8 +207,6 @@ void callbackWrappingFunction(void (*cbFun)(void*), void* data, bool* completion
 // Removes used easy handles from multihandle
 void AsynchronousDownloader::checkMultiInfo(void)
 {
-  // std::cout << "checkMultiInfo\n";
-
   char *done_url;
   CURLMsg *message;
   int pending;
@@ -323,7 +313,6 @@ void AsynchronousDownloader::checkMultiInfo(void)
 // Connects curl timer with uv timer
 int AsynchronousDownloader::startTimeout(CURLM *multi, long timeout_ms, void *userp)
 {
-  // std::cout << "startTimeout\n";
   auto timeout = (uv_timer_t *)userp;
 
   if (timeout_ms < 0)
@@ -345,7 +334,6 @@ int AsynchronousDownloader::startTimeout(CURLM *multi, long timeout_ms, void *us
 int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
                                          void *socketp)
 {
-  // std::cout << "handleSocket\n";
   auto socketData = (AsynchronousDownloader::DataForSocket *)userp;
   auto AD = (AsynchronousDownloader*)socketData->objPtr;
   AsynchronousDownloader::curl_context_t *curl_context;
@@ -461,7 +449,6 @@ std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CU
 
 std::vector<CURLcode*> AsynchronousDownloader::batchBlockingPerform(std::vector<CURL*> handleVector)
 {
-  // std::cout << "batchBlockingPerform\n";
   std::condition_variable cv;
   std::mutex cv_m;
   std::unique_lock<std::mutex> lk(cv_m);
@@ -554,7 +541,6 @@ CURLcode *AsynchronousDownloader::asynchPerform(CURL* handle, bool *completionFl
 
 CURLcode *AsynchronousDownloader::asynchPerformWithCallback(CURL* handle, bool *completionFlag, void (*cbFun)(void*), void* cbData)
 {
-  // std::cout << "asynchPerformWithCallback\n";
   auto data = new AsynchronousDownloader::PerformData();
   auto code = new CURLcode();
   data->asynchronous = true;
@@ -604,7 +590,6 @@ std::string extractETAG(std::string headers)
 
 size_t writeToString(void *contents, size_t size, size_t nmemb, std::string *dst)
 {
-  // std::cout << "writeToString\n";
   char *conts = (char *)contents;
   for (int i = 0; i < nmemb; i++)
   {
@@ -621,7 +606,6 @@ void cleanAllHandles(std::vector<CURL*> handles)
 
 void closesocket_callback(void *clientp, curl_socket_t item)
 {
-  // std::cout << "Closing socket " << item << "\n";
   close(item);
 }
 
