@@ -412,9 +412,9 @@ void AsynchronousDownloader::asynchLoop()
   uv_run(&loop, UV_RUN_DEFAULT);
 }
 
-std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CURL*> handleVector, bool *completionFlag)
+std::vector<CURLcode> AsynchronousDownloader::batchAsynchPerform(std::vector<CURL*> handleVector, bool *completionFlag)
 {
-  std::vector<CURLcode*> codeVector;
+  std::vector<CURLcode> codeVector(handleVector.size());
   size_t *requestsLeft = new size_t();
   *requestsLeft = handleVector.size();
 
@@ -422,11 +422,8 @@ std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CU
   for(int i = 0; i < handleVector.size(); i++)
   {
     auto *data = new AsynchronousDownloader::PerformData();
-    codeVector.push_back(new CURLcode());
 
-    data->codeDestination = codeVector.back();
-    data->asynchronous = true;
-    data->batchRequest = true;
+    data->codeDestination = &codeVector[i];
     data->requestsLeft = requestsLeft;
     data->completionFlag = completionFlag;
     data->type = ASYNCHRONOUS;
@@ -439,26 +436,22 @@ std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CU
   return codeVector;
 }
 
-std::vector<CURLcode*> AsynchronousDownloader::batchBlockingPerform(std::vector<CURL*> handleVector)
+std::vector<CURLcode> AsynchronousDownloader::batchBlockingPerform(std::vector<CURL*> handleVector)
 {
   std::condition_variable cv;
   std::mutex cv_m;
   std::unique_lock<std::mutex> lk(cv_m);
 
-  std::vector<CURLcode*> codeVector;
+  std::vector<CURLcode> codeVector(handleVector.size());
   size_t requestsLeft = handleVector.size();
 
   handlesQueueLock.lock();
   for(int i = 0; i < handleVector.size(); i++)
   {
     auto *data = new AsynchronousDownloader::PerformData();
-    codeVector.push_back(new CURLcode());
-    data->codeDestination = codeVector.back();
-    data->asynchronous = false;
+    data->codeDestination = &codeVector[i];
     data->cv = &cv;
     data->type = BLOCKING;
-
-    data->batchRequest = true;
     data->requestsLeft = &requestsLeft;
 
     curl_easy_setopt(handleVector[i], CURLOPT_PRIVATE, data);
@@ -475,7 +468,6 @@ CURLcode *AsynchronousDownloader::asynchPerformWithCallback(CURL* handle, bool *
 {
   auto data = new AsynchronousDownloader::PerformData();
   auto code = new CURLcode();
-  data->asynchronous = true;
   data->completionFlag = completionFlag;
   data->codeDestination = code;
 
