@@ -37,12 +37,11 @@ TODO:
 - add asynchronous closeLoop call
 
 - check what can be free'd in destructor
-- free things in checkMultiInfo
+- free things in finalize Download
 
 - change name "checkGlobals"
 - pooling threads only when they exist
 
-- reusing socket errors can happen - handle by trying new socket, and pass error as last resort
 - multiple uv loop threads
 
 Information:
@@ -54,12 +53,13 @@ Information:
 
 AsynchronousDownloader::AsynchronousDownloader()
 {
-  // Preparing loop timer
+  // Preparing timer to be used by curl
   timeout = new uv_timer_t();
   timeout->data = this;
   uv_loop_init(&loop);
   uv_timer_init(&loop, timeout);
 
+  // Preparing timer that will close multi handle and it's sockets some time after transfer completes
   socketTimoutTimer = new uv_timer_t();
   uv_timer_init(&loop, socketTimoutTimer);
   socketTimoutTimer->data = this;
@@ -67,7 +67,8 @@ AsynchronousDownloader::AsynchronousDownloader()
   // Preparing curl handle
   initializeMultiHandle();  
 
-  // Preparing queue checking timer
+  // Global timer
+  // uv_loop runs only when there are active handles, this handle guarantees the loop won't close after finishing first batch of requests
   auto timerCheckQueueHandle = new uv_timer_t();
   timerCheckQueueHandle->data = this;
   uv_timer_init(&loop, timerCheckQueueHandle);
@@ -112,7 +113,7 @@ AsynchronousDownloader::~AsynchronousDownloader()
   loopThread->join();
   free(loopThread);
 
-  // Close and if any handles are running then signal to close and run loop once to close them
+  // Close and if any handles are running then signal to close, and run loop once to close them
   // This may take more then one iteration of loop - hence the "while"
   while (UV_EBUSY == uv_loop_close(&loop)) {
     closeLoop = false;
@@ -135,7 +136,7 @@ bool alienRedirect(CURL* handle)
   return true;
 }
 
-void closeSockets(uv_timer_t* handle) {
+void closeMultiHandle(uv_timer_t* handle) {
   auto AD = (AsynchronousDownloader*)handle->data;
   curl_multi_cleanup(AD->curlMultiHandle);
   AD->multiHandleActive = false;
@@ -254,7 +255,7 @@ void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
     }
   }
 
-  // Starting scheduling new download
+  // Check if any handles are waiting in queue
   checkHandleQueue();
 
   // Calling timout starts a new download
@@ -262,21 +263,18 @@ void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
   curl_multi_socket_action(curlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
   checkMultiInfo();
 
-  // If no running handles left then schedule sockets to close
+  // If no running handles left then schedule multihandle to close
   if (running_handles == 0)
   {
-    uv_timer_start(socketTimoutTimer, closeSockets, socketTimoutMS, 0); // SHOULD BE GLOBAL
+    uv_timer_start(socketTimoutTimer, closeMultiHandle, socketTimoutMS, 0);
     socketTimoutTimerRunning = true;
   }
 }
 
-// Removes used easy handles from multihandle
 void AsynchronousDownloader::checkMultiInfo()
 {
-  char *done_url;
   CURLMsg *message;
   int pending;
-  CURL *easy_handle;
 
   while ((message = curl_multi_info_read(curlMultiHandle, &pending)))
   {
@@ -373,8 +371,10 @@ void AsynchronousDownloader::checkHandleQueue()
   if (handlesToBeAdded.size() > 0)
   {
     // Postpone closing sockets
-    uv_timer_stop(socketTimoutTimer);
-    socketTimoutTimerRunning = false;
+    if (socketTimoutTimerRunning) {
+      uv_timer_stop(socketTimoutTimer);
+      socketTimoutTimerRunning = false;
+    }
 
     // Add handles without going over the limit
     while(handlesToBeAdded.size() > 0 && handlesInUse < maxHandlesInUse) {
