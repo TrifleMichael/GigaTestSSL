@@ -34,7 +34,6 @@ g++ -std=c++11 GigaTest.cpp -lpthread -lcurl -luv -o GigaTest && ./GigaTest
 /*
 TODO:
 
-- postopne close socket timer if new batch of handles comes in 
 - add asynchronous closeLoop call
 
 - check what can be free'd in destructor
@@ -137,7 +136,7 @@ bool alienRedirect(CURL* handle)
 }
 
 void closeSockets(uv_timer_t* handle) {
-  std::cout << "Closing sockets\n";
+  // std::cout << "Closing sockets\n";
   auto AD = (AsynchronousDownloader*)handle->data;
   curl_multi_cleanup(AD->curlMultiHandle);
   AD->multiHandleActive = false;
@@ -307,7 +306,7 @@ void AsynchronousDownloader::checkMultiInfo(void)
 
 
       if (running_handles == 0) {
-        std::cout << "Starting socketTimeoutTimer\n";
+        // std::cout << "Starting socketTimeoutTimer\n";
         uv_timer_start(socketTimoutTimer, closeSockets, 2000, 0); // SHOULD BE GLOBAL
         socketTimoutTimerRunning = true;
       }
@@ -390,28 +389,26 @@ void AsynchronousDownloader::checkHandleQueue()
     initializeMultiHandle();
   }
 
-  
-
+  // Lock access to handle queue
+  handlesQueueLock.lock();
   if (handlesToBeAdded.size() > 0)
   {
+    // Postpone closing sockets
     uv_timer_stop(socketTimoutTimer);
     socketTimoutTimerRunning = false;
 
-    handlesQueueLock.lock();
     // Add handles without going over the limit
     while(handlesToBeAdded.size() > 0 && handlesInUse < maxHandlesInUse) {
       curl_multi_add_handle(curlMultiHandle, handlesToBeAdded.front());
       handlesInUse++;
       handlesToBeAdded.erase(handlesToBeAdded.begin());
     }
-    handlesQueueLock.unlock();
   }
+  handlesQueueLock.unlock();
 }
 
 void checkGlobals(uv_timer_t *handle)
 {
-  // std::cout << "checkGlobals\n";
-
   // Check for closing signal
   auto AD = (AsynchronousDownloader*)handle->data;
   if(AD->closeLoop) {
@@ -433,7 +430,6 @@ void checkGlobals(uv_timer_t *handle)
 
 void AsynchronousDownloader::asynchLoop()
 {
-  // std::cout << "asynchLoop\n";
   uv_run(&loop, UV_RUN_DEFAULT);
 }
 
@@ -456,7 +452,7 @@ std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CU
     data->completionFlag = completionFlag;
 
     curl_easy_setopt(handleVector[i], CURLOPT_PRIVATE, data);
-    handlesToBeAdded.push_back(handleVector[i]); // protected before and after for
+    handlesToBeAdded.push_back(handleVector[i]);
   }
   handlesQueueLock.unlock();
   makeLoopCheckQueueAsync();
@@ -486,7 +482,7 @@ std::vector<CURLcode*> AsynchronousDownloader::batchBlockingPerform(std::vector<
     data->requestsLeft = &requestsLeft;
 
     curl_easy_setopt(handleVector[i], CURLOPT_PRIVATE, data);
-    handlesToBeAdded.push_back(handleVector[i]); // protected before and after for
+    handlesToBeAdded.push_back(handleVector[i]);
   }
   handlesQueueLock.unlock();
   makeLoopCheckQueueAsync();
@@ -496,7 +492,6 @@ std::vector<CURLcode*> AsynchronousDownloader::batchBlockingPerform(std::vector<
 
 CURLcode *AsynchronousDownloader::blockingPerform(CURL* handle)
 {
-  // std::cout << "blockingPerform\n";
   std::condition_variable cv;
   std::mutex cv_m;
   std::unique_lock<std::mutex> lk(cv_m);
@@ -519,7 +514,6 @@ CURLcode *AsynchronousDownloader::blockingPerform(CURL* handle)
 
 CURLcode *AsynchronousDownloader::blockingPerformWithCallback(CURL* handle, void (*cbFun)(void*), void* cbData)
 {
-  // std::cout << "blockingPerformWithCallback\n";
   std::condition_variable cv;
   std::mutex cv_m;
   std::unique_lock<std::mutex> lk(cv_m);
@@ -543,7 +537,6 @@ CURLcode *AsynchronousDownloader::blockingPerformWithCallback(CURL* handle, void
 
 CURLcode *AsynchronousDownloader::asynchPerform(CURL* handle, bool *completionFlag)
 {
-  // std::cout << "asynchPerform\n";
   auto data = new AsynchronousDownloader::PerformData();
   auto code = new CURLcode();
   data->asynchronous = true;
@@ -628,7 +621,7 @@ void cleanAllHandles(std::vector<CURL*> handles)
 
 void closesocket_callback(void *clientp, curl_socket_t item)
 {
-  std::cout << "Closing socket " << item << "\n";
+  // std::cout << "Closing socket " << item << "\n";
   close(item);
 }
 
@@ -637,7 +630,7 @@ curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct cu
   auto AD = (AsynchronousDownloader*)clientp;
   auto sock = socket(address->family, address->socktype, address->protocol);
   // AD->activeSockets.push_back(sock);  
-  std::cout << "Opening socket " << sock << "\n";
+  // std::cout << "Opening socket " << sock << "\n";
   return sock;
 }
 
@@ -1072,7 +1065,7 @@ void GigaTest()
     std::cout << "-------------- Testing for all objects with " << AsynchronousDownloader::maxHandlesInUse << " parallel connections. -----------\n";
 
 
-  int repeats = 2;
+  int repeats = 5;
 
 
   // Just checking for 303
@@ -1088,12 +1081,12 @@ void GigaTest()
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
-  // std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
-  blockingBatchTestSockets(0, false);
+  // blockingBatchTestSockets(0, false);
 
   curl_global_cleanup();
   return;
