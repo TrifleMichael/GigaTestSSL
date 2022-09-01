@@ -136,10 +136,21 @@ bool alienRedirect(CURL* handle)
   return true;
 }
 
+void closePolls(uv_handle_t* handle, void* arg)
+{
+  if (handle->type == UV_POLL) {
+    if (!uv_is_closing(handle)) {
+      uv_close(handle, onUVClose);
+    }
+  }
+}
+
 void closeMultiHandle(uv_timer_t* handle) {
   auto AD = (AsynchronousDownloader*)handle->data;
   curl_multi_cleanup(AD->curlMultiHandle);
   AD->multiHandleActive = false;
+
+  uv_walk(&AD->loop, closePolls, NULL);
   uv_timer_stop(handle);
 }
 
@@ -254,6 +265,7 @@ void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
       break;
     }
   }
+  free(data);
 
   // Check if any handles are waiting in queue
   checkHandleQueue();
