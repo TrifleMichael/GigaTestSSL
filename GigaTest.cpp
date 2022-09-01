@@ -235,42 +235,22 @@ void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
     auto cbThread = new std::thread(&callbackWrappingFunction, data->cbFun, data->cbData, cbFlag);
     threadFlagPairVector.emplace_back(cbThread, cbFlag);
   }
-  // Blocking
-  if (!data->asynchronous)
+
+  // If no requests left then signal finished based on type of operation
+  if (--(*data->requestsLeft) == 0)
   {
-    // Batch request
-    if (data->batchRequest)
+    switch (data->type)
     {
-      *data->requestsLeft -= 1;
-      if (*data->requestsLeft == 0)
-      {
-        data->cv->notify_all();
-      }
-    }
-    // Single request
-    else
-    {
+    case BLOCKING:
       data->cv->notify_all();
-    }
-  }
-  // Asynchronous
-  else
-  {
-    // Single request
-    if (!data->batchRequest)
-    {
-      *(data->completionFlag) = true;
-      free(data);
-    }
-    // Batch request
-    else
-    {
-      *(data->requestsLeft) -= 1;
-      if (*data->requestsLeft == 0)
-      {
-        *data->completionFlag = true;
-        free(data);
-      }
+      break;
+    case ASYNCHRONOUS:
+      *data->completionFlag = true;
+      break;
+    case ASYNCHRONOUS_WITH_CALLBACK:
+      *data->completionFlag = true;
+      // TODO launch callback
+      break;
     }
   }
 
@@ -281,6 +261,8 @@ void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
   int running_handles;
   curl_multi_socket_action(curlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
   checkMultiInfo();
+
+  // If no running handles left then schedule sockets to close
   if (running_handles == 0)
   {
     uv_timer_start(socketTimoutTimer, closeSockets, socketTimoutMS, 0); // SHOULD BE GLOBAL
@@ -447,6 +429,7 @@ std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CU
     data->batchRequest = true;
     data->requestsLeft = requestsLeft;
     data->completionFlag = completionFlag;
+    data->type = ASYNCHRONOUS;
 
     curl_easy_setopt(handleVector[i], CURLOPT_PRIVATE, data);
     handlesToBeAdded.push_back(handleVector[i]);
@@ -473,6 +456,7 @@ std::vector<CURLcode*> AsynchronousDownloader::batchBlockingPerform(std::vector<
     data->codeDestination = codeVector.back();
     data->asynchronous = false;
     data->cv = &cv;
+    data->type = BLOCKING;
 
     data->batchRequest = true;
     data->requestsLeft = &requestsLeft;
@@ -486,68 +470,7 @@ std::vector<CURLcode*> AsynchronousDownloader::batchBlockingPerform(std::vector<
   return codeVector;
 }
 
-CURLcode *AsynchronousDownloader::blockingPerform(CURL* handle)
-{
-  std::condition_variable cv;
-  std::mutex cv_m;
-  std::unique_lock<std::mutex> lk(cv_m);
-
-  AsynchronousDownloader::PerformData data;
-  auto code = new CURLcode();
-  data.codeDestination = code;
-  data.asynchronous = false;
-  data.cv = &cv;
-
-  curl_easy_setopt(handle, CURLOPT_PRIVATE, &data);
-
-  handlesQueueLock.lock();
-  handlesToBeAdded.push_back(handle);
-  handlesQueueLock.unlock();
-
-  cv.wait(lk);
-  return code;
-}
-
-CURLcode *AsynchronousDownloader::blockingPerformWithCallback(CURL* handle, void (*cbFun)(void*), void* cbData)
-{
-  std::condition_variable cv;
-  std::mutex cv_m;
-  std::unique_lock<std::mutex> lk(cv_m);
-
-  AsynchronousDownloader::PerformData data;
-  auto code = new CURLcode();
-  data.codeDestination = code;
-  data.asynchronous = false;
-  data.cv = &cv;
-  
-  curl_easy_setopt(handle, CURLOPT_PRIVATE, &data);
-
-  handlesQueueLock.lock();
-  handlesToBeAdded.push_back(handle);
-  handlesQueueLock.unlock();
-
-  cv.wait(lk);
-  cbFun(cbData);
-  return code;
-}
-
-CURLcode *AsynchronousDownloader::asynchPerform(CURL* handle, bool *completionFlag)
-{
-  auto data = new AsynchronousDownloader::PerformData();
-  auto code = new CURLcode();
-  data->asynchronous = true;
-  data->completionFlag = completionFlag;
-  data->codeDestination = code;
-
-  curl_easy_setopt(handle, CURLOPT_PRIVATE, data);
-
-  handlesQueueLock.lock();
-  handlesToBeAdded.push_back(handle);
-  handlesQueueLock.unlock();
-
-  return code;
-}
-
+// TODO turn to batch asynch with callback
 CURLcode *AsynchronousDownloader::asynchPerformWithCallback(CURL* handle, bool *completionFlag, void (*cbFun)(void*), void* cbData)
 {
   auto data = new AsynchronousDownloader::PerformData();
@@ -559,6 +482,7 @@ CURLcode *AsynchronousDownloader::asynchPerformWithCallback(CURL* handle, bool *
   data->cbFun = cbFun;
   data->cbData = cbData;
   data->callback = true;
+  data->type = ASYNCHRONOUS_WITH_CALLBACK;
 
   curl_easy_setopt(handle, CURLOPT_PRIVATE, data);
 

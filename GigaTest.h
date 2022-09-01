@@ -65,8 +65,7 @@ public:
   uv_timer_t *timeout;
   std::vector<CURL*> handlesToBeAdded;
   std::mutex handlesQueueLock;
-  std::thread *loopThread;  
-
+  std::thread *loopThread;
   std::vector< std::pair<std::thread*, bool*> > threadFlagPairVector;
 
   typedef struct PerformData
@@ -81,6 +80,7 @@ public:
     bool callback = false;
     bool batchRequest = false;
     size_t *requestsLeft;
+    RequestType type;
   } PerformData;
 
   AsynchronousDownloader();
