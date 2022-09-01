@@ -204,8 +204,92 @@ void callbackWrappingFunction(void (*cbFun)(void*), void* data, bool* completion
   *completionFlag = true;
 }
 
+void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
+{
+  handlesInUse--;
+  char* done_url;
+  curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
+  // printf("%s DONE\n", done_url);
+
+  PerformData *data;
+  curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &data);
+  curl_multi_remove_handle(curlMultiHandle, easy_handle);
+
+  long code;
+  curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &code);
+  if (code != 303 && code != 304)
+  {
+    std::cout << "Weird code returned: " << code << "\n";
+  }
+  else
+  {
+    if (!alienRedirect(easy_handle))
+      std::cout << "Redirected to a different server than alien\n";
+  }
+  // curl_easy_getinfo(easy_handle,  CURLINFO_RESPONSE_CODE, data->codeDestination);
+
+  if (data->callback)
+  {
+    bool *cbFlag = (bool *)malloc(sizeof(bool));
+    *cbFlag = false;
+    auto cbThread = new std::thread(&callbackWrappingFunction, data->cbFun, data->cbData, cbFlag);
+    threadFlagPairVector.emplace_back(cbThread, cbFlag);
+  }
+  // Blocking
+  if (!data->asynchronous)
+  {
+    // Batch request
+    if (data->batchRequest)
+    {
+      *data->requestsLeft -= 1;
+      if (*data->requestsLeft == 0)
+      {
+        data->cv->notify_all();
+      }
+    }
+    // Single request
+    else
+    {
+      data->cv->notify_all();
+    }
+  }
+  // Asynchronous
+  else
+  {
+    // Single request
+    if (!data->batchRequest)
+    {
+      *(data->completionFlag) = true;
+      free(data);
+    }
+    // Batch request
+    else
+    {
+      *(data->requestsLeft) -= 1;
+      if (*data->requestsLeft == 0)
+      {
+        *data->completionFlag = true;
+        free(data);
+      }
+    }
+  }
+
+  // Starting scheduling new download
+  checkHandleQueue();
+
+  // Calling timout starts a new download
+  int running_handles;
+  curl_multi_socket_action(curlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
+  checkMultiInfo();
+  if (running_handles == 0)
+  {
+    uv_timer_start(socketTimoutTimer, closeSockets, socketTimoutMS, 0); // SHOULD BE GLOBAL
+    socketTimoutTimerRunning = true;
+  }
+}
+
 // Removes used easy handles from multihandle
-void AsynchronousDownloader::checkMultiInfo(void)
+void AsynchronousDownloader::checkMultiInfo()
 {
   char *done_url;
   CURLMsg *message;
@@ -223,83 +307,8 @@ void AsynchronousDownloader::checkMultiInfo(void)
         "WARNING: The data the returned pointer points to will not survive
         calling curl_multi_cleanup, curl_multi_remove_handle or
         curl_easy_cleanup." */
+      finalizeDownload(message->easy_handle);
       
-      handlesInUse--;
-      easy_handle = message->easy_handle;
-      curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
-      // printf("%s DONE\n", done_url);
-
-      PerformData *data;
-      curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &data); 
-      curl_multi_remove_handle(curlMultiHandle, easy_handle);
-
-      long code;
-      curl_easy_getinfo(easy_handle,  CURLINFO_RESPONSE_CODE, &code);
-      if (code != 303 && code != 304) {
-        std::cout << "Weird code returned: " << code << "\n";
-      } else {
-        if (!alienRedirect(easy_handle)) std::cout << "Redirected to a different server than alien\n";
-      }
-      // curl_easy_getinfo(easy_handle,  CURLINFO_RESPONSE_CODE, data->codeDestination);
-
-      if (data->callback)
-      {
-        bool *cbFlag = (bool*)malloc(sizeof(bool));
-        *cbFlag = false;
-        auto cbThread = new std::thread(&callbackWrappingFunction, data->cbFun, data->cbData, cbFlag);
-        threadFlagPairVector.emplace_back(cbThread, cbFlag);
-      }
-      // Blocking
-      if (!data->asynchronous)
-      {
-        // Batch request
-        if (data->batchRequest)
-        {
-          *data->requestsLeft -= 1;
-          if (*data->requestsLeft == 0)
-          {
-            data->cv->notify_all();
-          }
-        }
-        // Single request
-        else {
-          data->cv->notify_all();
-        }
-      }
-      // Asynchronous
-      else
-      {
-        // Single request
-        if (!data->batchRequest)
-        {
-          *(data->completionFlag) = true;
-          free(data);
-        }
-        // Batch request
-        else {
-          *(data->requestsLeft) -= 1;
-          if (*data->requestsLeft == 0) {
-            *data->completionFlag = true;
-            free(data);
-          }
-        }
-      }
-      // curl_easy_cleanup(easy_handle);
-
-
-      // Starting scheduling new download
-      checkHandleQueue();
-      int running_handles;
-      curl_multi_socket_action(curlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
-                              &running_handles);
-      checkMultiInfo();
-
-
-      if (running_handles == 0) {
-        // std::cout << "Starting socketTimeoutTimer\n";
-        uv_timer_start(socketTimoutTimer, closeSockets, 2000, 0); // SHOULD BE GLOBAL
-        socketTimoutTimerRunning = true;
-      }
     }
     break;
 
@@ -322,8 +331,7 @@ int AsynchronousDownloader::startTimeout(CURLM *multi, long timeout_ms, void *us
   else
   {
     if (timeout_ms == 0)
-      timeout_ms = 1; /* 0 means directly call socket_action, but we will do it
-                        in a bit */
+      timeout_ms = 1; // Calling onTimout when timeout = 0 could create an infinite loop                       
     uv_timer_start(timeout, onTimeout, timeout_ms, 0);
   }
   return 0;
@@ -344,6 +352,8 @@ int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
   case CURL_POLL_IN:
   case CURL_POLL_OUT:
   case CURL_POLL_INOUT:
+
+    // Create context associated with socket and create a poll for said socket
     curl_context = socketp ? (AsynchronousDownloader::curl_context_t *)socketp : AD->createCurlContext(s, socketData->objPtr);
     curl_multi_assign(socketData->curlm, s, (void *)curl_context);
 
@@ -357,9 +367,8 @@ int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
   case CURL_POLL_REMOVE:
     if (socketp)
     {
-      // std::cout << "Stopping poll for " << &((curl_context_t *)socketp)->poll_handle << "\n";
+      // Stop polling the socket, remove context assiciated with it. Socket will stay open until multi handle is closed.
       uv_poll_stop(&((AsynchronousDownloader::curl_context_t *)socketp)->poll_handle);
-      // close(((curl_context_t *)socketp)->sockfd);
       AD->destroyCurlContext((AsynchronousDownloader::curl_context_t *)socketp);
       curl_multi_assign(socketData->curlm, s, NULL);
     }
@@ -432,9 +441,9 @@ std::vector<CURLcode*> AsynchronousDownloader::batchAsynchPerform(std::vector<CU
   {
     auto *data = new AsynchronousDownloader::PerformData();
     codeVector.push_back(new CURLcode());
+
     data->codeDestination = codeVector.back();
     data->asynchronous = true;
-
     data->batchRequest = true;
     data->requestsLeft = requestsLeft;
     data->completionFlag = completionFlag;

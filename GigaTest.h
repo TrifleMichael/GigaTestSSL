@@ -30,6 +30,15 @@ class AsynchronousDownloader
 {
 public:
 
+  int socketTimoutMS = 2000; // Time for which sockets will stay open after last download finishes
+
+  enum RequestType
+  {
+    BLOCKING,
+    ASYNCHRONOUS,
+    ASYNCHRONOUS_WITH_CALLBACK
+  };
+
   typedef struct curl_context_s
   {
     uv_poll_t poll_handle;
@@ -77,6 +86,7 @@ public:
   AsynchronousDownloader();
   ~AsynchronousDownloader();
   void initializeMultiHandle();
+  void finalizeDownload(CURL* handle);
   curl_context_t *createCurlContext(curl_socket_t sockfd, AsynchronousDownloader *objPtr);
   static void curlCloseCB(uv_handle_t *handle);
   static void destroyCurlContext(curl_context_t *context);
