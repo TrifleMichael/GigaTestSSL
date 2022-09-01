@@ -306,7 +306,7 @@ void AsynchronousDownloader::checkMultiInfo(void)
       checkMultiInfo();
 
 
-      if (running_handles == 0 && !socketTimoutTimerRunning) {
+      if (running_handles == 0) {
         std::cout << "Starting socketTimeoutTimer\n";
         uv_timer_start(socketTimoutTimer, closeSockets, 2000, 0); // SHOULD BE GLOBAL
         socketTimoutTimerRunning = true;
@@ -390,8 +390,13 @@ void AsynchronousDownloader::checkHandleQueue()
     initializeMultiHandle();
   }
 
+  
+
   if (handlesToBeAdded.size() > 0)
   {
+    uv_timer_stop(socketTimoutTimer);
+    socketTimoutTimerRunning = false;
+
     handlesQueueLock.lock();
     // Add handles without going over the limit
     while(handlesToBeAdded.size() > 0 && handlesInUse < maxHandlesInUse) {
