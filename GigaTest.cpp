@@ -412,9 +412,9 @@ void AsynchronousDownloader::asynchLoop()
   uv_run(&loop, UV_RUN_DEFAULT);
 }
 
-std::vector<CURLcode> AsynchronousDownloader::batchAsynchPerform(std::vector<CURL*> handleVector, bool *completionFlag)
+std::vector<CURLcode>* AsynchronousDownloader::batchAsynchPerform(std::vector<CURL*> handleVector, bool *completionFlag)
 {
-  std::vector<CURLcode> codeVector(handleVector.size());
+  auto codeVector = new std::vector<CURLcode>(handleVector.size());
   size_t *requestsLeft = new size_t();
   *requestsLeft = handleVector.size();
 
@@ -423,7 +423,7 @@ std::vector<CURLcode> AsynchronousDownloader::batchAsynchPerform(std::vector<CUR
   {
     auto *data = new AsynchronousDownloader::PerformData();
 
-    data->codeDestination = &codeVector[i];
+    data->codeDestination = &(*codeVector)[i];
     data->requestsLeft = requestsLeft;
     data->completionFlag = completionFlag;
     data->type = ASYNCHRONOUS;
@@ -434,6 +434,13 @@ std::vector<CURLcode> AsynchronousDownloader::batchAsynchPerform(std::vector<CUR
   handlesQueueLock.unlock();
   makeLoopCheckQueueAsync();
   return codeVector;
+}
+
+CURLcode AsynchronousDownloader::blockingPerform(CURL* handle)
+{
+  std::vector<CURL*> handleVector;
+  handleVector.push_back(handle);
+  return batchBlockingPerform(handleVector).back();
 }
 
 std::vector<CURLcode> AsynchronousDownloader::batchBlockingPerform(std::vector<CURL*> handleVector)
