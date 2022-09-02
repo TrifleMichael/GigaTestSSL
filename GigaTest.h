@@ -54,10 +54,6 @@ public:
 
   int handlesInUse = 0;
   static int const maxHandlesInUse = 1; // static and constant just for testing
-  bool multiHandleActive = false;
-
-  uv_timer_t* socketTimoutTimer;
-  bool socketTimoutTimerRunning = false;
 
   bool closeLoop = false;
   uv_loop_t loop;

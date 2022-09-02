@@ -59,11 +59,6 @@ AsynchronousDownloader::AsynchronousDownloader()
   uv_loop_init(&loop);
   uv_timer_init(&loop, timeout);
 
-  // Preparing timer that will close multi handle and it's sockets some time after transfer completes
-  socketTimoutTimer = new uv_timer_t();
-  uv_timer_init(&loop, socketTimoutTimer);
-  socketTimoutTimer->data = this;
-
   // Preparing curl handle
   initializeMultiHandle();  
 
@@ -79,7 +74,6 @@ AsynchronousDownloader::AsynchronousDownloader()
 
 void AsynchronousDownloader::initializeMultiHandle()
 {
-  multiHandleActive = true;
   curlMultiHandle = curl_multi_init();
   curl_multi_setopt(curlMultiHandle, CURLMOPT_SOCKETFUNCTION, handleSocket);
   auto socketData = new DataForSocket();
@@ -143,15 +137,6 @@ void closePolls(uv_handle_t* handle, void* arg)
       uv_close(handle, onUVClose);
     }
   }
-}
-
-void closeMultiHandle(uv_timer_t* handle) {
-  auto AD = (AsynchronousDownloader*)handle->data;
-  curl_multi_cleanup(AD->curlMultiHandle);
-  AD->multiHandleActive = false;
-
-  uv_walk(&AD->loop, closePolls, NULL);
-  uv_timer_stop(handle);
 }
 
 void onTimeout(uv_timer_t *req)
@@ -274,13 +259,6 @@ void AsynchronousDownloader::finalizeDownload(CURL* easy_handle)
   int running_handles;
   curl_multi_socket_action(curlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
   checkMultiInfo();
-
-  // If no running handles left then schedule multihandle to close
-  if (running_handles == 0)
-  {
-    uv_timer_start(socketTimoutTimer, closeMultiHandle, socketTimoutMS, 0);
-    socketTimoutTimerRunning = true;
-  }
 }
 
 void AsynchronousDownloader::checkMultiInfo()
@@ -374,20 +352,11 @@ int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
 
 void AsynchronousDownloader::checkHandleQueue()
 {
-  if (!multiHandleActive) {
-    initializeMultiHandle();
-  }
 
   // Lock access to handle queue
   handlesQueueLock.lock();
   if (handlesToBeAdded.size() > 0)
   {
-    // Postpone closing sockets
-    if (socketTimoutTimerRunning) {
-      uv_timer_stop(socketTimoutTimer);
-      socketTimoutTimerRunning = false;
-    }
-
     // Add handles without going over the limit
     while(handlesToBeAdded.size() > 0 && handlesInUse < maxHandlesInUse) {
       curl_multi_add_handle(curlMultiHandle, handlesToBeAdded.front());
@@ -550,6 +519,7 @@ void cleanAllHandles(std::vector<CURL*> handles)
 
 void closesocket_callback(void *clientp, curl_socket_t item)
 {
+  std::cout << "Closing socket " << item << "\n";
   close(item);
 }
 
@@ -558,7 +528,7 @@ curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct cu
   auto AD = (AsynchronousDownloader*)clientp;
   auto sock = socket(address->family, address->socktype, address->protocol);
   // AD->activeSockets.push_back(sock);  
-  // std::cout << "Opening socket " << sock << "\n";
+  std::cout << "Opening socket " << sock << "\n";
   return sock;
 }
 
@@ -1009,12 +979,12 @@ void GigaTest()
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
-  std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
-  // blockingBatchTestSockets(0, false);
+  blockingBatchTestSockets(0, false);
 
   curl_global_cleanup();
   return;
