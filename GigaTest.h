@@ -59,7 +59,7 @@ public:
   } CloseSocketData;
 
   int handlesInUse = 0;
-  static int const maxHandlesInUse = 1; // static and constant just for testing
+  static int const maxHandlesInUse = 2; // static and constant just for testing
   std::unordered_map<curl_socket_t, uv_timer_t*> socketTimerMap;
 
   bool closeLoop = false;

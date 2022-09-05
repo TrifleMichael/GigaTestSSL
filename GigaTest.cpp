@@ -117,6 +117,20 @@ AsynchronousDownloader::~AsynchronousDownloader()
   curl_multi_cleanup(curlMultiHandle);
 }
 
+void closesocket_callback(void *clientp, curl_socket_t item)
+{
+  // Close socket only if it wasn't closed before by its timer.
+  auto AD = (AsynchronousDownloader*)clientp;
+  if (AD->socketTimerMap.find(item) != AD->socketTimerMap.end()) {
+    std::cout << "Closing socket " << item << "B\n";
+    uv_timer_stop(AD->socketTimerMap[item]);
+    AD->socketTimerMap.erase(item);
+    close(item);
+  } else {
+    std::cout << "Socket not found in map B.\n";
+  }
+}
+
 bool alienRedirect(CURL* handle)
 {
   char *url = NULL;
@@ -313,11 +327,12 @@ void closeSocketCallback(uv_timer_t* handle)
   curl_socket_t socket = closeData->socket;
   auto AD = closeData->AD;
 
-  close(socket);
   if (AD->socketTimerMap.find(socket) != AD->socketTimerMap.end()) {
+    std::cout << "Closing socket " << socket << "A\n";
+    close(socket);
     closeData->AD->socketTimerMap.erase(closeData->socket);
   } else {
-    std::cout << "Error. Timer ran out for non existing socket.\n";
+    std::cout << "Socket not found in map A.\n";
   }
 
   int running_handles;
@@ -440,6 +455,8 @@ std::vector<CURLcode>* AsynchronousDownloader::batchAsynchPerform(std::vector<CU
     data->completionFlag = completionFlag;
     data->type = ASYNCHRONOUS;
 
+    curl_easy_setopt(handleVector[i], CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback);
+    curl_easy_setopt(handleVector[i], CURLOPT_CLOSESOCKETDATA, this);
     curl_easy_setopt(handleVector[i], CURLOPT_PRIVATE, data);
     handlesToBeAdded.push_back(handleVector[i]);
   }
@@ -473,6 +490,8 @@ std::vector<CURLcode> AsynchronousDownloader::batchBlockingPerform(std::vector<C
     data->type = BLOCKING;
     data->requestsLeft = &requestsLeft;
 
+    curl_easy_setopt(handleVector[i], CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback);
+    curl_easy_setopt(handleVector[i], CURLOPT_CLOSESOCKETDATA, this);
     curl_easy_setopt(handleVector[i], CURLOPT_PRIVATE, data);
     handlesToBeAdded.push_back(handleVector[i]);
   }
@@ -495,6 +514,8 @@ CURLcode *AsynchronousDownloader::asynchPerformWithCallback(CURL* handle, bool *
   data->callback = true;
   data->type = ASYNCHRONOUS_WITH_CALLBACK;
 
+  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback);
+  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETDATA, this);
   curl_easy_setopt(handle, CURLOPT_PRIVATE, data);
 
   handlesQueueLock.lock();
@@ -548,28 +569,18 @@ void cleanAllHandles(std::vector<CURL*> handles)
     curl_easy_cleanup(handle);
 }
 
-void closesocket_callback(void *clientp, curl_socket_t item)
-{
-  // std::cout << "Closing socket " << item << "\n";
-  // close(item);
-}
 
 curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct curl_sockaddr *address)
 {
-  auto AD = (AsynchronousDownloader*)clientp;
   auto sock = socket(address->family, address->socktype, address->protocol);
-  // AD->activeSockets.push_back(sock);  
-  // std::cout << "Opening socket " << sock << "\n";
+  std::cout << "Opening socket " << sock << "\n";
   return sock;
 }
 
 void setHandleOptions(CURL* handle, std::string* dst, std::string* headers, std::string* path, AsynchronousDownloader* AD)
 {
-  if (AD) {
-    curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback);
-    curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_callback);
-    curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, AD);
-  }
+  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback); // NEEDS TO BE ALWAYS ADDED
+  curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_callback);
 
   curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, writeToString);
   curl_easy_setopt(handle, CURLOPT_HEADERDATA, headers);
@@ -584,12 +595,9 @@ void setHandleOptions(CURL* handle, std::string* dst, std::string* headers, std:
 
 void setHandleOptionsForValidity(CURL* handle, std::string* dst, std::string* url, std::string* etag, AsynchronousDownloader* AD)
 {
+  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback); // NEEDS TO BE ALWAYS ADDED
+  curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_callback);
 
-  if (AD) {
-    curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback);
-    curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_callback);
-    curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, AD);
-  }
   curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writeToString);
   curl_easy_setopt(handle, CURLOPT_WRITEDATA, dst);
   curl_easy_setopt(handle, CURLOPT_URL, url->c_str());
@@ -993,9 +1001,7 @@ void GigaTest()
   else
     std::cout << "-------------- Testing for all objects with " << AsynchronousDownloader::maxHandlesInUse << " parallel connections. -----------\n";
 
-
-  int repeats = 10;
-
+  int repeats = 5;
 
   // Just checking for 303
   // std::cout << "Blocking perform: " << countAverageTime(blockingBatchTest, testSize, repeats) << "ms.\n";
@@ -1010,12 +1016,12 @@ void GigaTest()
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
-  std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
-  // blockingBatchTestSockets(testSize, false);
+  blockingBatchTestSockets(testSize, false);
 
   curl_global_cleanup();
   return;
