@@ -12,7 +12,7 @@
 #include <mutex>
 
 #include <chrono>   // time measurement
-#include <unistd.h> // time measurement
+// #include <unistd.h> // time measurement
 
 #include <sys/types.h> /* See NOTES */
 #include <sys/socket.h>
@@ -307,6 +307,26 @@ int AsynchronousDownloader::startTimeout(CURLM *multi, long timeout_ms, void *us
   return 0;
 }
 
+void closeSocketCallback(uv_timer_t* handle)
+{
+  AsynchronousDownloader::CloseSocketData* closeData = (AsynchronousDownloader::CloseSocketData*)handle->data;
+  curl_socket_t socket = closeData->socket;
+  auto AD = closeData->AD;
+
+  close(socket);
+  if (AD->socketTimerMap.find(socket) != AD->socketTimerMap.end()) {
+    closeData->AD->socketTimerMap.erase(closeData->socket);
+  } else {
+    std::cout << "Error. Timer ran out for non existing socket.\n";
+  }
+
+  int running_handles;
+  curl_multi_socket_action(AD->curlMultiHandle, socket, CURL_SOCKET_TIMEOUT, &running_handles);
+  AD->checkMultiInfo();
+
+  free(handle->data);
+}
+
 // Is used to react to curl_multi_socket_action
 // If INOUT then assigns socket to multi handle and starts polling file descriptors in poll_handle by callback
 int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
@@ -337,6 +357,18 @@ int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
   case CURL_POLL_REMOVE:
     if (socketp)
     {
+      if (AD->socketTimerMap.find(s) == AD->socketTimerMap.end()) {
+        auto timer = new uv_timer_t();
+        auto closeData = (AsynchronousDownloader::CloseSocketData*)malloc(sizeof(AsynchronousDownloader::CloseSocketData));
+        closeData->socket = s;
+        closeData->AD = AD;
+        timer->data = closeData;
+
+        AD->socketTimerMap[s] = timer;
+        uv_timer_init(&AD->loop, timer);
+      }
+      uv_timer_start(AD->socketTimerMap[s], closeSocketCallback, AD->socketTimoutMS, 0);
+
       // Stop polling the socket, remove context assiciated with it. Socket will stay open until multi handle is closed.
       uv_poll_stop(&((AsynchronousDownloader::curl_context_t *)socketp)->poll_handle);
       AD->destroyCurlContext((AsynchronousDownloader::curl_context_t *)socketp);
@@ -346,7 +378,6 @@ int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
   default:
     abort();
   }
-
   return 0;
 }
 
@@ -519,8 +550,8 @@ void cleanAllHandles(std::vector<CURL*> handles)
 
 void closesocket_callback(void *clientp, curl_socket_t item)
 {
-  std::cout << "Closing socket " << item << "\n";
-  close(item);
+  // std::cout << "Closing socket " << item << "\n";
+  // close(item);
 }
 
 curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct curl_sockaddr *address)
@@ -528,7 +559,7 @@ curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct cu
   auto AD = (AsynchronousDownloader*)clientp;
   auto sock = socket(address->family, address->socktype, address->protocol);
   // AD->activeSockets.push_back(sock);  
-  std::cout << "Opening socket " << sock << "\n";
+  // std::cout << "Opening socket " << sock << "\n";
   return sock;
 }
 
@@ -963,7 +994,7 @@ void GigaTest()
     std::cout << "-------------- Testing for all objects with " << AsynchronousDownloader::maxHandlesInUse << " parallel connections. -----------\n";
 
 
-  int repeats = 5;
+  int repeats = 10;
 
 
   // Just checking for 303
@@ -979,12 +1010,12 @@ void GigaTest()
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
-  // std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
-  blockingBatchTestSockets(0, false);
+  // blockingBatchTestSockets(testSize, false);
 
   curl_global_cleanup();
   return;
