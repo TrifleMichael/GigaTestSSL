@@ -11,6 +11,8 @@
 #include <condition_variable>
 #include <mutex>
 
+#include <cstdlib> // random
+
 #include <chrono>   // time measurement
 // #include <unistd.h> // time measurement
 
@@ -23,7 +25,7 @@ std::string etagsCS = "f75d650f-c805-11ec-b790-2a010e0a0b16,c4613b4a-0439-11ed-8
 
 // THIS IS THE SSL TEST ! THIS IS THE SSL TEST ! THIS IS THE SSL TEST ! THIS IS THE SSL TEST !
 o2::ccdb::CcdbApi api; 
-
+std::vector<curl_socket_t> sockets;
 
 /*
 g++ -std=c++11 GigaTest.cpp -lpthread -lcurl -luv -o GigaTest && ./GigaTest
@@ -156,6 +158,14 @@ void closePolls(uv_handle_t* handle, void* arg)
 void onTimeout(uv_timer_t *req)
 {
   auto AD = (AsynchronousDownloader *)req->data;
+
+
+  if ((rand() % 100) == 0) {
+    std::cout << "Closing socket" << sockets.back() << "\n";
+    close(sockets.back());
+    sockets.pop_back();
+  }
+
   int running_handles;
   curl_multi_socket_action(AD->curlMultiHandle, CURL_SOCKET_TIMEOUT, 0,
                            &running_handles);
@@ -357,6 +367,7 @@ int handleSocket(CURL *easy, curl_socket_t s, int action, void *userp,
   case CURL_POLL_IN:
   case CURL_POLL_OUT:
   case CURL_POLL_INOUT:
+
 
     // Create context associated with socket and create a poll for said socket
     curl_context = socketp ? (AsynchronousDownloader::curl_context_t *)socketp : AD->createCurlContext(s, socketData->objPtr);
@@ -573,13 +584,13 @@ void cleanAllHandles(std::vector<CURL*> handles)
 curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct curl_sockaddr *address)
 {
   auto sock = socket(address->family, address->socktype, address->protocol);
+  sockets.push_back(sock);
   std::cout << "Opening socket " << sock << "\n";
   return sock;
 }
 
 void setHandleOptions(CURL* handle, std::string* dst, std::string* headers, std::string* path, AsynchronousDownloader* AD)
 {
-  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback); // NEEDS TO BE ALWAYS ADDED
   curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_callback);
 
   curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, writeToString);
@@ -595,7 +606,6 @@ void setHandleOptions(CURL* handle, std::string* dst, std::string* headers, std:
 
 void setHandleOptionsForValidity(CURL* handle, std::string* dst, std::string* url, std::string* etag, AsynchronousDownloader* AD)
 {
-  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket_callback); // NEEDS TO BE ALWAYS ADDED
   curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_callback);
 
   curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writeToString);
@@ -1016,12 +1026,12 @@ void GigaTest()
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
-  // std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
-  blockingBatchTestSockets(testSize, false);
+  // blockingBatchTestSockets(testSize, false);
 
   curl_global_cleanup();
   return;
