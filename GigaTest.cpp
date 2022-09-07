@@ -18,12 +18,11 @@
 #include <sys/socket.h>
 #include "GigaTest.h"
 
-// std::string pathsCS = "https://alice-ccdb.cern.ch/CTP/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/ZDC/Config/Module/1546300800000,https://alice-ccdb.cern.ch/ITS/Config/AlpideParam/1657442962000,https://alice-ccdb.cern.ch/TPC/Calib/TimeGain/0,https://alice-ccdb.cern.ch/TPC/Calib/Temperature/1659949565413,https://alice-ccdb.cern.ch/CPV/PedestalRun/HighPedChannels/1659935186741,https://alice-ccdb.cern.ch/FT0/Calib/ChannelTimeOffset/1546300800000,https://alice-ccdb.cern.ch/TOF/Calib/LHCphase/0,https://alice-ccdb.cern.ch/TOF/Calib/ChannelCalib/1654242778226,https://alice-ccdb.cern.ch/ITS/Calib/CTFDictionary/1653192000000,https://alice-ccdb.cern.ch/MFT/Calib/CTFDictionary/1653192000000,https://alice-ccdb.cern.ch/MCH/Align/1638479347757,https://alice-ccdb.cern.ch/ITS/Calib/Align/1635199200000,https://alice-ccdb.cern.ch/MID/Config/DCSDPconfig/1653499219078,https://alice-ccdb.cern.ch/ITS/Align/1635322620830,https://alice-ccdb.cern.ch/ITS/Calib/ClusterDictionary/1653192000000,https://alice-ccdb.cern.ch/MFT/Calib/DeadMap/0,https://alice-ccdb.cern.ch/TRD/Calib/Align/1,https://alice-ccdb.cern.ch/EMC/Config/CalibParam/1658945928000,https://alice-ccdb.cern.ch/PHS/Calib/BadMap/1,https://alice-ccdb.cern.ch/FV0/Align/1638479347757,https://alice-ccdb.cern.ch/FDD/Config/DCSDPconfig/1,https://alice-ccdb.cern.ch/MID/Align/1638479347757,https://alice-ccdb.cern.ch/EMC/Config/ChannelScaleFactors/1546300800000,https://alice-ccdb.cern.ch/MID/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/GLO/Config/EnvVars/1659949276728,https://alice-ccdb.cern.ch/EMC/Calib/Temperature/1659949599544,https://alice-ccdb.cern.ch/TOF/Calib/LVStatus/1659621343526,https://alice-ccdb.cern.ch/GLO/Config/Collimators/1659949276728,https://alice-ccdb.cern.ch/GLO/Config/LHCIFDataPoints/1659949276728,https://alice-ccdb.cern.ch/MFT/Config/Params/1659947087892,https://alice-ccdb.cern.ch/CPV/PedestalRun/FEEThresholds/1659935186741,https://alice-ccdb.cern.ch/MCH/Calib/BadChannel/1659935281422,https://alice-ccdb.cern.ch/MFT/Calib/NoiseMap/1659890496672,https://alice-ccdb.cern.ch/MFT/Condition/DCSDPs/1659949674726,https://alice-ccdb.cern.ch/TPC/Calib/Gas/1659949565413,https://alice-ccdb.cern.ch/GLO/Config/GRPLHCIF/1659937041924,https://alice-ccdb.cern.ch/TOF/Calib/Diagnostic/1,https://alice-ccdb.cern.ch/TRD/Calib/DCSDPsU/1659949587465,https://alice-ccdb.cern.ch/TPC/Calib/Pulser/1659936185889,https://alice-ccdb.cern.ch/CTP/Calib/Scalers/1659946806420,https://alice-ccdb.cern.ch/TPC/Calib/PedestalNoise/1659935701974,https://alice-ccdb.cern.ch/MCH/BadChannelCalib/1652347115925,https://alice-ccdb.cern.ch/TPC/Calib/CE/1659890954106,https://alice-ccdb.cern.ch/CPV/Calib/Pedestals/1659935186741,https://alice-ccdb.cern.ch/GLO/Config/GRPMagField/1659621342493,https://alice-ccdb.cern.ch/MID/Calib/Align/1,https://alice-ccdb.cern.ch/FT0/Calib/DCSDPs/1659949426082,https://alice-ccdb.cern.ch/GLO/GRP/BunchFilling/1657583876199,https://alice-ccdb.cern.ch/TPC/Align/1638479347757,https://alice-ccdb.cern.ch/TOF/Config/DCSDPconfig/1652733375051,https://alice-ccdb.cern.ch/MFT/Calib/Align/1635322620830,https://alice-ccdb.cern.ch/TOF/Calib/DCSDPs/1659949388995,https://alice-ccdb.cern.ch/MFT/Align/1635322620830,https://alice-ccdb.cern.ch/TRD/Calib/DCSDPsI/1659949587465,https://alice-ccdb.cern.ch/TPC/Calib/HV/1659949565413,https://alice-ccdb.cern.ch/GRP/Config/DCSDPconfig/1651753934367,https://alice-ccdb.cern.ch/MCH/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/CPV/Calib/BadChannelMap/1659935743007,https://alice-ccdb.cern.ch/TRD/Calib/ChamberStatus/1,https://alice-ccdb.cern.ch/PHS/Align/1638479347757,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2015-01/1,https://alice-ccdb.cern.ch/ITS/Calib/DeadMap/0,https://alice-ccdb.cern.ch/PHS/Config/RecoParams/1657915200001,https://alice-ccdb.cern.ch/FT0/Align/1638479347757,https://alice-ccdb.cern.ch/FV0/Calibration/ChannelTimeOffset/1546300800000,https://alice-ccdb.cern.ch/IT3/Align/1638479347757,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2011-02/1,https://alice-ccdb.cern.ch/PHS/Calib/CTFDictionary/1653192000000,https://alice-ccdb.cern.ch/FCT/Calib/Align/1,https://alice-ccdb.cern.ch/ZDC/Calib/RecoConfigZDC/1546300800000,https://alice-ccdb.cern.ch/TRK/Align/1638479347757,https://alice-ccdb.cern.ch/EMC/Calib/Align/1,https://alice-ccdb.cern.ch/ITS/Config/ClustererParam/1657726378777,https://alice-ccdb.cern.ch/EMC/Align/1638479347757,https://alice-ccdb.cern.ch/CPV/Config/CPVSimParams/946684800000,https://alice-ccdb.cern.ch/EMC/Calib/CTFDictionary/1653192000000,https://alice-ccdb.cern.ch/TST/Calib/Align/1,https://alice-ccdb.cern.ch/PHS/BadMap/Ped/1,https://alice-ccdb.cern.ch/IT3/Calib/Align/1,https://alice-ccdb.cern.ch/FV0/Calib/Align/1640991600000,https://alice-ccdb.cern.ch/FDD/Calib/CTFDictionary/1655282522000,https://alice-ccdb.cern.ch/TRD/Calib/PadStatus/1,https://alice-ccdb.cern.ch/FDD/Calib/Align/1,https://alice-ccdb.cern.ch/FT0/Config/DCSDPconfig/1,https://alice-ccdb.cern.ch/PHS/BadMap/1,https://alice-ccdb.cern.ch/CPV/Calib/Gains/1627542202422,https://alice-ccdb.cern.ch/TRD/Calib/NoiseMapMCM/1,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2018-01/1,https://alice-ccdb.cern.ch/TPC/Config/FEEPad/0,https://alice-ccdb.cern.ch/MFT/Config/DCSDPconfig/1653494821018,https://alice-ccdb.cern.ch/MCH/Config/DCSDPconfig/1653499164150,https://alice-ccdb.cern.ch/MFT/Calib/ClusterDictionary/1653192000000,https://alice-ccdb.cern.ch/HMP/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/PHS/BadMap/Chi/1,https://alice-ccdb.cern.ch/TRK/Calib/Align/1,https://alice-ccdb.cern.ch/PHS/BadMap/Occ/1,https://alice-ccdb.cern.ch/EMC/Calib/BadChannelMap/1626472048000,https://alice-ccdb.cern.ch/FT3/Align/1638479347757,https://alice-ccdb.cern.ch/CPV/Config/CPVCalibParams/1653639365626,https://alice-ccdb.cern.ch/FT0/Config/LookupTable/1654105278523,https://alice-ccdb.cern.ch/TOF/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/TRD/Calib/DCSDPs/1653646795136,https://alice-ccdb.cern.ch/TRD/Config/DCSDPconfig/1654615142813,https://alice-ccdb.cern.ch/MFT/Config/ClustererParam/1657726413855,https://alice-ccdb.cern.ch/FT0/Calibration/ChannelTimeOffset/1546300800000,https://alice-ccdb.cern.ch/TRD/Calib/HalfChamberStatusQC/1577833200000,https://alice-ccdb.cern.ch/TRD/Calib/PadNoise/1,https://alice-ccdb.cern.ch/TPC/Config/DCSDPconfig/1650631890013,https://alice-ccdb.cern.ch/CPV/Calib/Align/1,https://alice-ccdb.cern.ch/FT3/Calib/Align/1,https://alice-ccdb.cern.ch/FV0/Calib/ChannelTimeOffset/1546300800000,https://alice-ccdb.cern.ch/CPV/Calib/CTFDictionary/1653192000000,https://alice-ccdb.cern.ch/FT0/Calib/Align/1640991600000,https://alice-ccdb.cern.ch/TRD/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/TPC/Calib/VDriftTgl/1,https://alice-ccdb.cern.ch/MFT/Config/AlpideParam/1657663439000,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2015-02/1,https://alice-ccdb.cern.ch/TOF/Calib/HVStatus/1659621342493,https://alice-ccdb.cern.ch/ITS/Calib/NoiseMap/0,https://alice-ccdb.cern.ch/FDD/Config/LookupTable/1654105278523,https://alice-ccdb.cern.ch/HMP/Align/1638479347757,https://alice-ccdb.cern.ch/FV0/Config/DCSDPconfig/1,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2012-01/1,https://alice-ccdb.cern.ch/PHS/Calib/CalibParams/1651356383449,https://alice-ccdb.cern.ch/FDD/Align/1638479347757,https://alice-ccdb.cern.ch/TRD/TrapConfig/cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549/1,https://alice-ccdb.cern.ch/ZDC/Calib/TDCCalib/1546300800000,https://alice-ccdb.cern.ch/EMC/Calib/TimeCalibParams/1626472048000,https://alice-ccdb.cern.ch/ITS/DCS_CONFIG/1659532359719,https://alice-ccdb.cern.ch/CPV/Align/1638479347757,https://alice-ccdb.cern.ch/CTP/Config/TriggerOffsets/1,https://alice-ccdb.cern.ch/TRD/Calib/LocalGainFactor/1,https://alice-ccdb.cern.ch/FT0/Calib/CTFDictionary/1655282522000,https://alice-ccdb.cern.ch/ZDC/Calib/InterCalibConfig/1546300800000,https://alice-ccdb.cern.ch/EMC/Temperature/2254,https://alice-ccdb.cern.ch/PHS/Calib/Align/1,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2011-03/1,https://alice-ccdb.cern.ch/FV0/Calib/CTFDictionary/1655282522000,https://alice-ccdb.cern.ch/HMP/Calib/Align/1,https://alice-ccdb.cern.ch/ACO/Align/1638479347757,https://alice-ccdb.cern.ch/GLO/Calib/MeanVertex/1635257044785,https://alice-ccdb.cern.ch/EMC/FeeDCS/1653646593677,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Gaintbl_Uniform_FGAN0_2012-01/1,https://alice-ccdb.cern.ch/MCH/Calib/Align/1,https://alice-ccdb.cern.ch/GRP/StartOrbit/0,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Krypton_2011-01/1,https://alice-ccdb.cern.ch/EMC/Config/DCSDPconfig/1647423729718,https://alice-ccdb.cern.ch/TPC/Calib/Align/1,https://alice-ccdb.cern.ch/TRD/OnlineGainTables/Gaintbl_Uniform_FGAN0_2011-01/1,https://alice-ccdb.cern.ch/TPC/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/EMC/Calib/FeeDCS/1659690910837,https://alice-ccdb.cern.ch/GLO/Config/GRPECS/1659887718188,https://alice-ccdb.cern.ch/TOF/Calib/Align/1,https://alice-ccdb.cern.ch/TOF/Align/1638479347757,https://alice-ccdb.cern.ch/FV0/Config/LookupTable/1651241791741,https://alice-ccdb.cern.ch/ZDC/Calib/CTFDictionary/1626472048000,https://alice-ccdb.cern.ch/ZDC/Calib/IntegrationParam/1635570656996,https://alice-ccdb.cern.ch/ZDC/Calib/EnergyCalib/1546300800000,https://alice-ccdb.cern.ch/ZDC/Calib/Align/1,https://alice-ccdb.cern.ch/ZDC/Calib/BaselineCalib/1546300800000,https://alice-ccdb.cern.ch/ZDC/Align/1638479347757,https://alice-ccdb.cern.ch/ZDC/Calib/TowerCalib/1546300800000,https://alice-ccdb.cern.ch/ZDC/Calib/TDCCorr/1546300800000,https://alice-ccdb.cern.ch/MID/Calib/BadChannels/1659890536060,https://alice-ccdb.cern.ch/ZDC/Config/Sim/1546300800000,https://alice-ccdb.cern.ch/CTP/Config/Config/1659946806420,https://alice-ccdb.cern.ch/TPC/Calib/PadGainResidual/0,https://alice-ccdb.cern.ch/PHS/Calib/Pedestals/1657807103014,https://alice-ccdb.cern.ch/TPC/Calib/PadGainFull/0,https://alice-ccdb.cern.ch/TPC/Calib/LaserTracks/1659513086496,https://alice-ccdb.cern.ch/TRD/Calib/ChamberCalibrations/1,https://alice-ccdb.cern.ch/TRD/Align/1638479347757,https://alice-ccdb.cern.ch/ITS/Calib/Confdbmap/1451606461000,https://alice-ccdb.cern.ch/CTP/Calib/Align/1,https://alice-ccdb.cern.ch/CPV/PhysicsRun/GainCalibData/946684800000,https://alice-ccdb.cern.ch/TRD/Calib/CalVdriftExB/1,https://alice-ccdb.cern.ch/TPC/Calib/TopologyGain/0,https://alice-ccdb.cern.ch/GLO/Param/MatLUT/1636019021295,https://alice-ccdb.cern.ch/GLO/Config/Geometry/1546300800000,https://alice-ccdb.cern.ch/GLO/Config/GeometryAligned/1640991600000,https://alice-ccdb.cern.ch/CTP/Calib/OrbitReset/1659938355618,https://alice-ccdb.cern.ch/TOF/Calib/FEELIGHT/1659947098000,https://alice-ccdb.cern.ch/TRD/Calib/DCSDPsGas/1659949080207,https://alice-ccdb.cern.ch/CPV/PedestalRun/DeadChannels/1659935186741,https://alice-ccdb.cern.ch/CPV/PedestalRun/ChannelEfficiencies/1659935186741";
-// std::string etagsCS = "f75d650f-c805-11ec-b790-2a010e0a0b16,c4613b4a-0439-11ed-8000-200114580202,5f2dc7de-003f-11ed-a97d-2a010e0a0b16,fc6eb7f0-a46e-11ec-982e-0aa2043e1b9a,08c47e86-16fa-11ed-8002-0aa1229c1b9a,db326e41-16d7-11ed-8002-0aa202a21b9a,756d3f8b-d5cd-11ec-9222-200114580d00,33982998-52a8-11ec-bf8f-0aa2041d1b9a,c8a42774-0e73-11ed-8000-200114580202,1d67e544-d92e-11ec-9e90-2a010e0a0b16,0511e1a6-d92e-11ec-9e90-2a010e0a0b16,38181fa0-52eb-11ec-8357-2a010e0a0b16,a8bc88fb-ec84-11ec-8c09-2a010e0a0b16,f3a71542-dc4e-11ec-9e90-2a010e0a0b16,5516eb40-a543-11ec-975c-25fc52e124ee,e1b7711f-d92a-11ec-8eb6-200114580202,4eca84a0-a047-11ec-8357-25fc52e1250c,f82105ae-bc3e-11ec-b66d-2a010e0a0b16,162e7e03-1a3a-11ed-b286-200114580202,a5b6f9bf-9b39-11ec-982e-0aa202a21b9a,38a32190-52eb-11ec-8357-2a010e0a0b16,9be86b16-0170-11ed-a336-2a010e0a0b16,383b8620-52eb-11ec-8357-2a010e0a0b16,27dec102-13e7-11ed-8000-200114580d00,d7c41e60-515f-11ec-975c-2a010e0a0b16,0eab9fc9-16fa-11ed-8002-0aa1229c1b9a,69c80f1a-16f9-11ed-8002-0aa1229c1b9a,10a14683-17ce-11ed-8002-0aa1229c1b9a,0eb1ed91-16fa-11ed-8002-0aa1229c1b9a,00ed5e2a-16fa-11ed-8002-0aa1229c1b9a,90b44c90-16f3-11ed-8002-0aa1229c1b9a,db3a4589-16d7-11ed-8002-0aa202a21b9a,1a17f296-16d8-11ed-8002-0aa200321b9a,ce825c19-166f-11ed-8002-0aa200321b9a,96942d4c-16f9-11ed-8002-0aa1229c1b9a,08bc0570-16fa-11ed-8002-0aa1229c1b9a,2cd79ee5-16dc-11ed-8002-0aa1229c1b9a,19889fe2-b96e-11ec-b66d-200114580202,a9b7bce3-16f9-11ed-8002-0aa1229c1b9a,2eb7b048-16da-11ed-8002-0aa204151b9a,db92a6bd-16f5-11ed-8002-0aa140651b9a,0e47ab39-16d9-11ed-8002-0aa204151b9a,cb6d771c-d1d4-11ec-8000-0aa200321b9a,de66bf44-1670-11ed-8002-0aa2040e1b9a,db3e6115-16d7-11ed-8002-0aa202a21b9a,218d3bd3-13fd-11ed-8002-0aa1229c1b9a,f938e7ba-bc3e-11ec-b66d-2a010e0a0b16,67bcba6d-16fa-11ed-8002-0aa1229c1b9a,48f3aa8f-0175-11ed-8000-0aa2040a1b9a,36eebad0-52eb-11ec-8357-2a010e0a0b16,d4cc38a5-d557-11ec-8000-0aa1229c1b9a,a974ae51-bc3f-11ec-b66d-2a010e0a0b16,51969d3e-16fa-11ed-8002-0aa1229c1b9a,30795be0-a3c4-11ec-975c-25fc52e124ee,a9b2f465-16f9-11ed-8002-0aa1229c1b9a,08c06681-16fa-11ed-8002-0aa1229c1b9a,64acb793-cc6f-11ec-981d-200114580202,d5e52530-515f-11ec-975c-2a010e0a0b16,26aa11b2-16d9-11ed-8002-0aa202a21b9a,e724d29a-d22d-11ec-8dd8-511cc1ec24ee,3760dd90-52eb-11ec-8357-2a010e0a0b16,668fd370-5488-11ec-975c-2a01cb15032a,57a0a230-a047-11ec-8357-25fc52e1250c,f96ba879-0613-11ed-8002-0aa202a21b9a,3880cc80-52eb-11ec-8357-2a010e0a0b16,b54b6ad5-d832-11ec-9e90-200114580202,390e8d90-52eb-11ec-8357-2a010e0a0b16,64fb29b0-5488-11ec-975c-2a01cb15032a,70196a15-d940-11ec-9e90-2a010e0a0b16,37d89e41-d043-11ec-981d-2a010e0a0b16,abbc3456-cca5-11ec-b790-200114580d00,393157d0-52eb-11ec-8357-2a010e0a0b16,f8ad3060-bc3e-11ec-b66d-2a010e0a0b16,13286527-02c1-11ed-8000-200114580202,37ac8c90-52eb-11ec-8357-2a010e0a0b16,5ce9988b-d60c-11ec-8000-0aa202a21b9a,4904c8f8-d92f-11ec-9e90-2a010e0a0b16,f9e54f0f-bc3e-11ec-b66d-2a010e0a0b16,73f992a0-b1d5-11ec-a6f9-0aa202a21b9a,fa07d9ff-bc3e-11ec-b66d-2a010e0a0b16,38865750-e310-11ec-9e90-2a010e0a0b16,f4683693-ec97-11ec-bea3-2a010e0a0b16,e8418bc7-d22d-11ec-8dd8-511cc1ec24ee,f9c530b8-bc3e-11ec-b66d-2a010e0a0b16,386b34f9-fc71-11ec-a336-200114580204,4fe5e667-9b14-11ec-982e-0aa202a21b9a,fdbfdde0-5441-11ec-8357-200114580202,e871e7e5-d22d-11ec-8dd8-511cc1ec24ee,680eab40-5488-11ec-975c-2a01cb15032a,dcf98353-a46e-11ec-982e-0aa2043e1b9a,b6208708-dc44-11ec-8eb6-2a010e0a0b16,d2f69665-dc4e-11ec-9e90-2a010e0a0b16,d9d33094-d92a-11ec-8eb6-200114580202,e6656370-515f-11ec-975c-2a010e0a0b16,73f9080e-b1d5-11ec-a6f9-0aa202a21b9a,fa2ad4cb-bc3e-11ec-b66d-2a010e0a0b16,73f8583d-b1d5-11ec-a6f9-0aa202a21b9a,cdca72f0-a944-11ec-975c-25fc52e124ee,39542210-52eb-11ec-8357-2a010e0a0b16,41410990-dd95-11ec-8000-0aa202a21b9a,a86e62a9-ee4d-11ec-841e-200114580202,d98e3000-515f-11ec-975c-2a010e0a0b16,8d982d22-dda6-11ec-8000-0aa1229c1b9a,29cf3933-e675-11ec-9e90-200114580202,280dd2ac-02c1-11ed-8000-200114580202,0e34e534-d5cd-11ec-90c5-200114580d00,50eca180-f22b-11ec-b9c0-200114580202,e81c639a-d22d-11ec-8dd8-511cc1ec24ee,ee1b51f7-c23a-11ec-8000-0aa2049b1b9a,f88944a8-bc3e-11ec-b66d-2a010e0a0b16,fa4d6144-bc3e-11ec-b66d-2a010e0a0b16,ea2bed9b-d832-11ec-8eb6-200114580202,74f5dcc0-d92f-11ec-9e90-2a010e0a0b16,3f67485b-e310-11ec-9e90-2a010e0a0b16,e0ebde60-515f-11ec-975c-2a010e0a0b16,5497bcc3-0843-11ed-8000-200114580202,2f375991-023d-11ed-8000-2a010e0a0b16,674fc810-5488-11ec-975c-2a01cb15032a,215b3c15-13fd-11ed-8002-0aa1229c1b9a,5cc82830-9fae-11ec-8357-25fc52e1250c,975c780e-ee4d-11ec-841e-200114580202,37ceba90-52eb-11ec-8357-2a010e0a0b16,a43b9d43-0170-11ed-a336-2a010e0a0b16,65f1beb0-5488-11ec-975c-2a01cb15032a,2a114c11-c8d2-11ec-8000-0aa2041a1b9a,38c79980-52eb-11ec-8357-2a010e0a0b16,e6c280c9-d22d-11ec-8dd8-511cc1ec24ee,0bc5c80f-cca6-11ec-b790-200114580d00,ebed4af0-a944-11ec-975c-25fc52e124ee,f3820402-132d-11ed-8002-0aa1229c1b9a,37872a40-52eb-11ec-8357-2a010e0a0b16,907486a2-ecaa-11ec-bea3-2a010e0a0b16,e7a02548-d22d-11ec-8dd8-511cc1ec24ee,06548824-ec98-11ec-bea3-2a010e0a0b16,6cfda43e-cca5-11ec-b790-200114580d00,9f3f7140-dda7-11ec-8000-0aa1229c1b9a,f86688b4-bc3e-11ec-b66d-2a010e0a0b16,656eac00-5488-11ec-975c-2a01cb15032a,120b9920-ec98-11ec-bea3-2a010e0a0b16,f8d05560-bc3e-11ec-b66d-2a010e0a0b16,38ea15a0-52eb-11ec-8357-2a010e0a0b16,ad65fd5a-1fa1-11ed-a788-200114580202,16ac6d3b-dda6-11ec-8000-0aa1229c1b9a,68e75800-5488-11ec-975c-2a01cb15032a,f9160ba9-bc3e-11ec-b66d-2a010e0a0b16,7cb85e90-9e2c-11ec-8357-90ce809b250c,649059f0-5488-11ec-975c-2a01cb15032a,598f0ccf-a50d-11ec-982e-0aa1229c1b9a,f7fe8760-bc3e-11ec-b66d-2a010e0a0b16,68862530-5488-11ec-975c-2a01cb15032a,e2e145c0-515f-11ec-975c-2a010e0a0b16,1b4b931d-149f-11ed-8002-0aa1229c1b9a,36ccfe21-172b-11ed-8002-0aa202fc1b9a,f843ba4b-bc3e-11ec-b66d-2a010e0a0b16,373b7b40-52eb-11ec-8357-2a010e0a0b16,f82fe729-c7c6-11ec-981d-2a010e0a0b16,c8bc7660-515f-11ec-8357-2a010e0a0b16,81042ff0-5468-11ec-975c-2a010e0a0b16,73c62b2f-cca4-11ec-981d-200114580d00,f95bf513-bc3e-11ec-b66d-2a010e0a0b16,c6fe667e-f23b-11ec-b9c0-2a010e0a0b16,385e2950-52eb-11ec-8357-2a010e0a0b16,0ef2f88b-cca6-11ec-b790-200114580d00,0d5c2790-cca6-11ec-b790-200114580d00,e5b9bee8-166f-11ed-8002-0aa204151b9a,4bd9e0c3-ccc2-11ec-b790-2a010e0a0b16,4e8fb968-16f4-11ed-8002-0aa140651b9a,02d318c8-a46f-11ec-982e-0aa2043e1b9a,42397504-037d-11ed-8001-0aa204131b9a,b929213c-a46e-11ec-982e-0aa2043e1b9a,13bad351-1301-11ed-8002-0aa204e61b9a,e704b36a-d22d-11ec-8dd8-511cc1ec24ee,3712e4a0-52eb-11ec-8357-2a010e0a0b16,79c59697-cbc4-11ec-b790-200114580202,8c2ed1ff-ccc0-11ec-b790-2a010e0a0b16,c3df1e31-e67c-11ec-8003-0aa202a21b9a,e6e40961-d22d-11ec-8dd8-511cc1ec24ee,27c55ffd-aaa4-11ec-982e-0aa2043e1b9a,b9bd65e0-3d53-11ec-8357-2a010e0a09fb,f50a6d64-2879-11ed-8141-200114580202,28fa0575-287c-11ed-ac0b-200114580202,3c58dd90-16df-11ed-8002-0aa140641b9a,992dd7f5-16f3-11ed-8002-0aa1229c1b9a,49d9b221-16fa-11ed-8002-0aa1229c1b9a,db366855-16d7-11ed-8002-0aa202a21b9a,db2e561a-16d7-11ed-8002-0aa202a21b9a";
 
 
 // THIS IS THE SSL TEST ! THIS IS THE SSL TEST ! THIS IS THE SSL TEST ! THIS IS THE SSL TEST !
-o2::ccdb::CcdbApi api; 
+bool aliceServer = false;
+o2::ccdb::CcdbApi *api; 
 
 
 /*
@@ -594,8 +593,8 @@ void setHandleOptions(CURL* handle, std::string* dst, std::string* headers, std:
   curl_easy_setopt(handle, CURLOPT_WRITEDATA, dst);
   curl_easy_setopt(handle, CURLOPT_URL, path->c_str());
 
-
-  // api.curlSetSSLOptions(handle);
+  if (aliceServer)
+    api->curlSetSSLOptions(handle);
 }
 
 void setHandleOptionsForValidity(CURL* handle, std::string* dst, std::string* url, std::string* etag, AsynchronousDownloader* AD)
@@ -604,7 +603,8 @@ void setHandleOptionsForValidity(CURL* handle, std::string* dst, std::string* ur
   curl_easy_setopt(handle, CURLOPT_WRITEDATA, dst);
   curl_easy_setopt(handle, CURLOPT_URL, url->c_str());
 
-  // api.curlSetSSLOptions(handle);
+  if (aliceServer)
+    api->curlSetSSLOptions(handle);
 
   std::string etagHeader = "If-None-Match: \"" + *etag + "\"";
   struct curl_slist *curlHeaders = nullptr;
@@ -615,30 +615,45 @@ void setHandleOptionsForValidity(CURL* handle, std::string* dst, std::string* ur
 std::vector<std::string> createPathsFromCS()
 {
   std::vector<std::string> vec;
-  std::string temp = "";
-  for(int i = 0; i < pathsCS.size(); i++)
-  {
-    if (pathsCS[i] == ',') {
-      vec.push_back(temp);
-      temp = "";
-    }
-    else {
-      (temp.push_back(pathsCS[i]));
+
+  std::string* pathsCS;
+  if (aliceServer) {
+    pathsCS = &alicePathsCS;
+  } else {
+    pathsCS = &ccdbPathsCS;
+  }
+
+  std::string tmp;
+  for(int i = 0; i < pathsCS->size(); i++) {
+    if ((*pathsCS)[i] == ',') {
+      vec.push_back(tmp);
+      tmp = "";
+    } else {
+      tmp += (*pathsCS)[i];
     }
   }
+  vec.push_back(tmp);
   return vec;
 }
 
-std::vector<std::string*> createEtagsFromCS()
+std::vector<std::string> createEtagsFromCS()
 {
-  std::vector<std::string*> vec;
-  std::string *tmp = new std::string();
-  for(int i = 0; i < etagsCS.size(); i++) {
-    if (etagsCS[i] == ',') {
+  std::vector<std::string> vec;
+
+  std::string* etagsCS;
+  if (aliceServer) {
+    etagsCS = &aliceEtagsCS;
+  } else {
+    etagsCS = &ccdbEtagsCS;
+  }
+
+  std::string tmp;
+  for(int i = 0; i < etagsCS->size(); i++) {
+    if ((*etagsCS)[i] == ',') {
       vec.push_back(tmp);
-      tmp = new std::string();
+      tmp = "";
     } else {
-      (*tmp) += etagsCS[i];
+      tmp += (*etagsCS)[i];
     }
   }
   vec.push_back(tmp);
@@ -740,7 +755,7 @@ int64_t blockingBatchTestValidity(int pathLimit = 0, bool printResult = false)
     auto handle = curl_easy_init();
     results.push_back(new std::string());
     handles.push_back(handle);
-    setHandleOptionsForValidity(handle, results.back(), &paths[i], etags[i], &AD);
+    setHandleOptionsForValidity(handle, results.back(), &paths[i], &etags[i], &AD);
   }
 
   // Checking objects validity
@@ -821,7 +836,7 @@ int64_t asynchBatchTestValidity(int pathLimit = 0, bool printResult = false)
     auto handle = curl_easy_init();
     results.push_back(new std::string());
     handles.push_back(handle);
-    setHandleOptionsForValidity(handle, results.back(), &paths[i], etags[i], &AD);
+    setHandleOptionsForValidity(handle, results.back(), &paths[i], &etags[i], &AD);
   }
 
   // Checking objects validity
@@ -894,7 +909,7 @@ int64_t linearTestValidity(int pathLimit = 0, bool printResult = false)
   CURL* handle = curl_easy_init();
   for (int i = 0; i < (pathLimit == 0 ? paths.size() : pathLimit); i++) {
     results.push_back(new std::string());    
-    setHandleOptionsForValidity(handle, results.back(), &paths[i], etags[i], nullptr);
+    setHandleOptionsForValidity(handle, results.back(), &paths[i], &etags[i], nullptr);
     
     curl_easy_perform(handle);
     long code;
@@ -958,7 +973,7 @@ int64_t linearTestNoReuseValidity(int pathLimit = 0, bool printResult = false)
   for (int i = 0; i < (pathLimit == 0 ? paths.size() : pathLimit); i++) {
     CURL* handle = curl_easy_init();
     results.push_back(new std::string());
-    setHandleOptionsForValidity(handle, results.back(), &paths[i], etags[i], nullptr);
+    setHandleOptionsForValidity(handle, results.back(), &paths[i], &etags[i], nullptr);
     
     curl_easy_perform(handle);
     long code;
@@ -988,7 +1003,14 @@ int64_t countAverageTime(int64_t (*function)(int, bool), int arg, int repeats)
 // int main()
 void GigaTest()
 {
-  // api.init("https://alice-ccdb.cern.ch");
+  std::cout << "Test will be conducted on ";
+  if (aliceServer) {
+    std::cout << "https://alice-ccdb.cern.ch\n";
+    api = new o2::ccdb::CcdbApi();
+    api->init("https://alice-ccdb.cern.ch");
+  } else {
+    std::cout << "http://ccdb-test.cern.ch:8080\n";
+  }
 
   if (curl_global_init(CURL_GLOBAL_ALL))
   {
@@ -1025,6 +1047,8 @@ void GigaTest()
 
   blockingBatchTestSockets(testSize, false);
 
+  if (aliceServer)
+    delete api;
   curl_global_cleanup();
   return;
 }
