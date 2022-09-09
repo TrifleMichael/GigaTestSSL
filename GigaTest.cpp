@@ -110,7 +110,6 @@ AsynchronousDownloader::~AsynchronousDownloader()
   for(auto socketTimerPair : socketTimerMap) {
     uv_timer_stop(socketTimerPair.second);
     uv_close((uv_handle_t*)socketTimerPair.second, nullptr);
-    std::cout << "Stopped timer \n";
   }
 
   // Close async thread
@@ -586,13 +585,10 @@ void closesocket_callback(void *clientp, curl_socket_t item)
 {
   auto AD = (AsynchronousDownloader*)clientp;
   if (AD->socketTimerMap.find(item) != AD->socketTimerMap.end()) {
-    std::cout << "Closing socket (curl) " << item << "\n";
     uv_timer_stop(AD->socketTimerMap[item]);
     AD->socketTimerMap.erase(item);
     close(item);
-    return;
   }
-  std::cout << "Socket " << item << " not found in map (curl)\n";
 }
 
 curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct curl_sockaddr *address)
@@ -608,7 +604,6 @@ curl_socket_t opensocket_callback(void *clientp, curlsocktype purpose, struct cu
   data->socket = sock;
   AD->socketTimerMap[sock]->data = data;
 
-  std::cout << "Opening socket " << sock << "\n";
   return sock;
 }
 
@@ -1084,12 +1079,12 @@ void GigaTest()
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
-  // std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
-  blockingBatchTestSockets(0, false);
+  // blockingBatchTestSockets(0, false);
 
   curl_global_cleanup();
   return;
