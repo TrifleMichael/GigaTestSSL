@@ -30,7 +30,7 @@ class AsynchronousDownloader
 {
 public:
 
-  int socketTimoutMS = 2000; // Time for which sockets will stay open after last download finishes
+  int socketTimoutMS = 20000; // Time for which sockets will stay open after last download finishes
 
   enum RequestType
   {
@@ -52,12 +52,19 @@ public:
     CURLM *curlm;
   } DataForSocket;
 
+  typedef struct DataForClosingSocket
+  {
+    AsynchronousDownloader* AD;
+    curl_socket_t socket;
+  } DataForClosingSocket;
+
   int handlesInUse = 0;
   static int const maxHandlesInUse = 4; // static and constant just for testing
   bool multiHandleActive = false;
 
   uv_timer_t* socketTimoutTimer;
   bool socketTimoutTimerRunning = false;
+  std::unordered_map<curl_socket_t, uv_timer_t*> socketTimerMap;
 
   bool closeLoop = false;
   uv_loop_t loop;
