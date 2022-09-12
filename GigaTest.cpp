@@ -1063,22 +1063,20 @@ void GigaTest()
     std::cout << "-------------- Testing for all objects with " << AsynchronousDownloader::maxHandlesInUse << " parallel connections. -----------\n";
 
 
-  int repeats = 5;
+  int repeats = 10;
 
 
   // Just checking for 303
+  // std::cout << "Benchmarking redirect time\n";
   // std::cout << "Blocking perform: " << countAverageTime(blockingBatchTest, testSize, repeats) << "ms.\n";
   // std::cout << "Async    perform: " << countAverageTime(asynchBatchTest, testSize, repeats) << "ms.\n";
   // std::cout << "Single   handle : " << countAverageTime(linearTest, testSize, repeats) << "ms.\n";
-  // std::cout << "Signle no reuse : " << countAverageTime(linearTestNoReuse, testSize, repeats) << "ms.\n";
+  // std::cout << "Single no reuse : " << countAverageTime(linearTestNoReuse, testSize, repeats) << "ms.\n";
 
-  // blockingBatchTestValidity(testSize);
-  // asynchBatchTestValidity(testSize);
-  // linearTestValidity(testSize);
-  // linearTestNoReuseValidity(testSize);
 
   // std::cout << "--------------------------------------------------------------------------------------------\n";
 
+  std::cout << "Benchmarking test validity times\n";
   std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
   std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
   std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
