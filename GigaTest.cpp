@@ -21,8 +21,7 @@
 
 // THIS IS THE SSL TEST ! THIS IS THE SSL TEST ! THIS IS THE SSL TEST ! THIS IS THE SSL TEST !
 bool aliceServer = true;
-o2::ccdb::CcdbApi *api; 
-
+o2::ccdb::CcdbApi *api;
 
 /*
 g++ -std=c++11 GigaTest.cpp -lpthread -lcurl -luv -o GigaTest && ./GigaTest
@@ -109,7 +108,7 @@ AsynchronousDownloader::~AsynchronousDownloader()
 {
   for(auto socketTimerPair : socketTimerMap) {
     uv_timer_stop(socketTimerPair.second);
-    uv_close((uv_handle_t*)socketTimerPair.second, nullptr);
+    uv_close((uv_handle_t*)socketTimerPair.second, onUVClose);
   }
 
   // Close async thread
@@ -540,8 +539,7 @@ CURLcode *AsynchronousDownloader::asynchPerformWithCallback(CURL* handle, bool *
 void asyncUVHandleCallback(uv_async_t *handle)
 {
   auto AD = (AsynchronousDownloader*)handle->data;
-  uv_close((uv_handle_t*)handle, nullptr);
-  delete handle;
+  uv_close((uv_handle_t*)handle, onUVClose);
   // stop handle and free its memory
   AD->checkHandleQueue();
   // uv_check_t will delete be deleted in its callback
@@ -796,7 +794,6 @@ int64_t blockingBatchTestValidity(int pathLimit = 0, bool printResult = false)
   }
 
   // Checking objects validity
-
   AD.batchBlockingPerform(handles);
 
   for (int i = 0; i < (pathLimit == 0 ? paths.size() : pathLimit); i++) {
@@ -1078,9 +1075,9 @@ void GigaTest()
 
   std::cout << "Benchmarking test validity times\n";
   std::cout << "Blocking perform validity: " << countAverageTime(blockingBatchTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
-  std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Async    perform validity: " << countAverageTime(asynchBatchTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Single   handle  validity: " << countAverageTime(linearTestValidity, testSize, repeats) << "ms.\n";
+  // std::cout << "Single no reuse  validity: " << countAverageTime(linearTestNoReuseValidity, testSize, repeats) << "ms.\n";
 
   // blockingBatchTestSockets(0, false);
 
